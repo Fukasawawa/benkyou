@@ -489,7 +489,91 @@ export 変数名[=値]
 
 ##リモートコマンド
 ###ホストとは
+/etc/hostsファイルにはLAN内に接続された各ホストのホスト名とIPアドレスの対応を記述する
+それによりLAN内の各マシンで通信を行うときIPアドレスではなくホスト名を使用できる
+ホスト名から通信相手を指定すると実際にはそれがIPアドレスに変換されて通信が確率
+ホスト名からIPアドレスへの変換を名前解決という
+
+/ect/hostsファイルには1行につき1つのIpアドレスとそれに対応するホスト名を記述
+行頭にLANに接続されているホストのIPアドレスを指定し空白で区切った後にホスト名を指定する
+
 ###リモートログイン
+SSHコマンドによりサーバへ外部の端末から操作することができる
+
+SSHの設定方法は
+エディタで/etc/ssh/sshd_configを開く
+開いたら以下の点を追加・編集していく
+  RSA秘密鍵 identityを必須にする
+    PasswordAuthentication no
+  rootでのログインを禁止する
+    PemitRootLogin no
+  パスワード無しのログインを許すか
+    PermitEmptyPasswords no
+  .rhosts等を信用するか(RSA認証付き)
+    RhostsRSAAuthentication no
+  ユーザhogeのみ接続許可をする(不特定多数に接続させない)
+    AllowUsers hoge
+
+これが出来たらSSHの再起動
+/etc/rc.d/init.d/sshd restart
+
+次にSSHを起動時に自動実行させるための背帝を行う
+これはサーバー機上での作業
+日本語表示がされるためkonを起動
+setupコマンドを実行
+設定ツールが起動するため「システムサービス設定」を選択
+telnetの行を見つけtelnet横の[ ]の乱を空白にする
+カーソルを合わせてスペースキーを押せば*は消える
+続いてsshdを起動するサービスに設定する
+telnetの時と同様にsshdと書かれた横の[ ]欄を今度は＊にする
+これにより起動時にSSHが自動起動するようになる
+最後に設定を保存して終了
+
+次にカギを作成する
+次のコマンドを実行してカギを作成
+$ ssh-keygen -t rsa1
+Generating public/private rsa1 key pair.
+Enter file in which to save the key (/home/hoge/.ssh/identity):
+/home/hoge/.ssh/identity already exists.
+Enter passphrase (empty for no passphrase): パスワードを入力
+Enter same passphrase again: パスワードを再入力
+
+$ cd /home/hoge/.ssh/
+次のコピーコマンドを必ず実行
+$ cp identity.pub authorized_keys
+
+指定したユーザのホームディレクトリ内に.sshというディレクトリとその中にファイルが2つ生成される
+このファイルの中のidentityというファイルは秘密鍵になるので知られないように注意
+またクライアント側で必要になるのでSSHで接続するクライアントに移動しておく
+
+ssh [オプション] ホスト名 [コマンド]
+SSHはプロトコルを利用するので安全にコマンドを実行することができる
+またsshは秘密鍵・公開鍵を利用したカギ認証が利用できる
+
+sshの主なオプション
+  -i 秘密鍵ファイル  秘密鍵ファイルを指定する
+  -l ユーザ名       ログインユーザ名を指定する
+  -p ポート名       ポート番号を指定する
+  -X               X11の転送を有効化する
+  -x               X11の転送を無効化する
+
+使用例
+IPアドレス(aaa.bbb.ccc.ddd)を指定して、リモートマシンにsshでログイン
+  $ ssh aaa.bbb.ccc.ddd
+ホスト名(example.com)を指定して、リモートマシンにsshでログイン
+  $ ssh example.com
+ユーザー名（karuma）を指定して、リモートマシンにsshでログイン
+  $ ssh -l karuma aaa.bbb.ccc.ddd
+  $ ssh karuma@aaa.bbb.ccc.ddd
+リモートマシンでコマンド（lsコマンド）を実行
+  $ ssh aaa.bbb.ccc.ddd ls
+秘密鍵を指定して、リモートマシンにsshでログイン
+  $ ssh -i /tmp/kagi.txt karuma@exaple.com
+
+ssh-keygenコマンドはSSHでりようする認証カギを生成・管理・変換する
+SSHプロトコルバージョン1のRSA鍵，SSHプロトコルバージョン2のRSA鍵，DSA鍵が生成できる
+ssh-keygen
+
 ###ファイル転送
 
 ##ファイル管理コマンド
@@ -587,6 +671,7 @@ bzip2コマンドの主なオプション
 どちらを使ってもファイルの解凍を行い元の圧縮ファイルを削除される
 bunzip2 [ファイル名]
 
+###アーカイブファイル
 ディレクトリを圧縮したい場合は，あらかじめ1つのアーカイブファイルにまとめ，それを圧縮する
 アーカイブファイルを扱うにはtarコマンドを使う
 tar [オプション] [ディレクトリ]
@@ -603,20 +688,75 @@ tarコマンドの主なオプション
   -j            bzip2による圧縮・解凍をサポートする
 
 tarによって作成されたアーカイブファイルは拡張子が.tarとなる
-
-
-###アーカイブファイル
-
+このアーカイブファイルは圧縮されていない
+アーカイブ作成と同時に圧縮も行うにはgzipではzオプション，bzip2ではjオプションをつける
 
 #Javaプログラミング入門
 
 ##Javaの概要
 ###Javaの開発環境
+主にjava開発で利用される統合開発環境(IDE)としてEclipseがある
+プラグイン次第でPHPやRubyなどにも対応できる
+
+javaの開発に必要なものはJDKとEclipseの二つがある
+JDKとはJavaプログラミングをするためのソフトウェアセットのこと
+EclipseはJava開発で利用される統合開発環境
+
+本来この二つをそれぞれ環境設定しなければいけない
+しかしPleiades All in Oneを使うことで一括で開発環境を整えることができる
+
+パッケージの圧縮ファイルをダウンロードし，その圧縮ファイルを解凍するだけで，JDKのインストールや環境変数の設定，Eclipseのダウンロード，日本語化すべてが実施済みの開発環境が立ち上がる
+
+brewをインストールするにはまずxcodeをインストール
+  xcodeはAppStoreからインストールをすれば完了
+homebrewの公式サイトに記載されているURLをコマンドラインに張り付けて実行
+brew updateを実行してAlready up-to-dateが出力されれば完了
+
+ターミナルからインストールするには
+brewを更新
+brew update && brew cleanup
+java8をインストール
+brew cask install java8
+インストールされているすべてのバージョンを確認
+/usr/libexec/java_home -v
+.bash_profileや.zshrcに書く
+export JAVA_HOME=`/usr/libexec/java_home -v 1.8`
+設定したバージョンを確認
+java -version
+
+JDKはOracleホームページからダウンロード
+ダウンロードしたファイルをダブルクリックするとインストールが始まる
+
 ###プログラム開発手順
+Eclipseの場合
+  まずプロジェクトを作成する
+  javaパースペクティブを表示する
+  ファイルメニューから新規を選択しJavaプロジェクトを選択
+    プロジェクトの名前を入力
+    他の項目はデフォルト
+  後はファイルを追加していきソースコードを作成する
+
+ターミナルから実行する場合
+  ソースファイルのディレクトリへ移動
+  javac ファイル名.javaを実行
+  ファイル名.classが作成される
+  java ファイル名を実行すると出力結果が標準出力される
 
 ##定数と変数
 ###基本データ型，参照型
+変数には値を記録できる種類が存在しそれをデータ型または型と呼ばれる
+javaの基本的な型
+  boolean trueまたはfalse
+  char    2バイト文字
+  byte    1バイト整数
+  short   2バイト整数
+  int     4バイト整数
+  long    8バイト整数
+  float   4バイト単精度浮動小数点数
+  double  8バイト倍精度浮動小数点数
+
 ###定数，変数
+
 ###初期化と代入
 
 ##演算子
