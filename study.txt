@@ -803,8 +803,8 @@ class クラス名{
     ~~~
   }
 
-  戻り値の型名 メソッド名(引数)
-  int hoge(int huga)
+  修飾器 戻り値の型名 メソッド名(引数)
+  public int hoge(int huga)
   {
     huga = huga + 5;
     return huga;
